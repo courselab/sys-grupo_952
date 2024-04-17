@@ -29,14 +29,20 @@ int main(int argc, char* argv[]) {
             unsigned char opcode[] = {0xEB, 0xFC}; 
             fwrite(opcode, sizeof(opcode), 1, outputFile);
         } else if (strstr(line, "movb") != NULL) {
-            unsigned char opcode[] = {0xB0}; 
-            fwrite(opcode, sizeof(opcode), 1, outputFile);
+            if (strstr(line, "al") != NULL) {
+                unsigned char opcode[] = {0xB0}; // MOV opcode for AL
+                fwrite(opcode, sizeof(opcode), 1, outputFile);
+            } else if (strstr(line, "ah") != NULL) {
+                unsigned char opcode[] = {0xB4}; // MOV opcode for AH
+                fwrite(opcode, sizeof(opcode), 1, outputFile);
+            }
 
             char* immediate = strchr(line, '$');
             if (immediate != NULL) {
                 unsigned char value = (unsigned char)strtol(immediate + 1, NULL, 16);
                 fwrite(&value, sizeof(value), 1, outputFile);
             }
+            
         } else if (strstr(line, "int     $0x10") != NULL) {
             unsigned char opcode[] = {0xCD, 0x10}; 
             fwrite(opcode, sizeof(opcode), 1, outputFile);
