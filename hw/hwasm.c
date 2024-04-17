@@ -30,10 +30,10 @@ int main(int argc, char* argv[]) {
             fwrite(opcode, sizeof(opcode), 1, outputFile);
         } else if (strstr(line, "movb") != NULL) {
             if (strstr(line, "al") != NULL) {
-                unsigned char opcode[] = {0xB0}; // MOV opcode for AL
+                unsigned char opcode[] = {0xB0};
                 fwrite(opcode, sizeof(opcode), 1, outputFile);
             } else if (strstr(line, "ah") != NULL) {
-                unsigned char opcode[] = {0xB4}; // MOV opcode for AH
+                unsigned char opcode[] = {0xB4};
                 fwrite(opcode, sizeof(opcode), 1, outputFile);
             }
 

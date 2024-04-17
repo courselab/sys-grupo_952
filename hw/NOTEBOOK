@@ -1,3 +1,24 @@
 #    SPDX-FileCopyrightText: 2024 hugoferreirj <huugo.vieira49@gmail.com>
 #   
 #    SPDX-License-Identifier: GPL-3.0-or-later
+
+Respostas
+a) O programa foi reescrito no arquivo hw.S
+
+b) O programa foi implementado no arquivo hwasm.c
+
+c) hw.bin foi produzido utilizando o hwasm.c
+
+d) O arquivo hw.bin e o eg-01.bin ficaram quase que idênticos, porém uma diferença no final do arquivo na forma que o hlt foi tratado no hw.S original, fez que eles divergissem no final.
+
+e) Há algumas divergências. No hw.S utilizamos o movb no lugar do mov. Quando fazemos o disassamble no hw.bin o movb é substituído pelo mov. Além disso, os rótulos presentes no hw.S (main e halt) não aparecem aqui. Apenas as instruções em sequência de execução aparecem quando fazemos o disassamble.
+
+f) Não funcionou. Recebo a seguinte mensagem: 
+SeaBIOS (version 1.15.0-1)
+Booting from Hard Disk...
+Boot failed: not a bootable disk
+Booting from Floppy..
+Boot Failed: could not read the boot disk
+Booting from DUD/CD...
+Boot failed: Could not read from CDROM (code 0003)
+No bootable device.
