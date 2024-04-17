@@ -18,6 +18,9 @@ main:
     movb    $0x6f, %al
     int     $0x10
 
+    movb    $0x20, %al
+    int     $0x10
+
     movb    $0x57, %al
     int     $0x10
 
