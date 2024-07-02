@@ -23,4 +23,29 @@ Quando recompilamos o programa com a opção -fstack-protector, o programa retor
 P3: 
 a) foo chama bar na linha 'a = bar(n + 1);'. A passagem de parâmetros é feita garantindo que o valor de n + 1  esteja acessível para bar() conforme esperado pela convenção de chamada definida para essa arquitetura específica. A convenção de chamada determina como os parâmetros são transmitidos entre as funções (por registradores ou pela pilha) e como os valores de retorno são gerenciados. A ABI vai além, especificando detalhes como o layout da pilha, registros que podem ser modificados e preservados, e outras regras de interação entre funções. 
 
-b) 
+b) A função bar retorna seu resultado para foo armazenando-o em um registrador específico (%eax neste caso), que é então acessado por foo após o retorno de bar. Isso demonstra como as convenções de chamada e a ABI afetam a comunicação entre funções em um programa compilado.
+
+c) Primeiras duas instruçõs de foo:
+80491a0:       89 e5             mov    %esp,%ebp
+80491a2:       83 ec 18          sub    $0x18,%esp
+
+Esta instrução reserva espaço na pilha (esp) para variáveis locais de foo. O compilador aloca 24 bytes (0x18 em hexadecimal) para variáveis locais e possíveis parâmetros. Isso é crucial para garantir que foo tenha espaço suficiente para suas operações locais sem corromper outros dados na pilha.
+
+Segunda para úlima instrução de foo:
+80491b7:       89 45 f4          mov    %eax,-0xc(%ebp)
+80491ba:       8b 45 f4          mov    -0xc(%ebp),%eax
+
+Esta instrução move o valor armazenado em -0xc(%ebp) para o registrador %eax. -0xc(%ebp) armazena o valor retornado por bar.
+
+A reserva de espaço na pilha e a movimentação de valores entre registradores são parte das convenções de chamada e ABI que discutimos no item (a).
+
+As instruções mencionadas em foo têm o propósito de gerenciar de forma eficiente o espaço de memória local na pilha e facilitar a passagem de valores entre foo e bar de acordo com as convenções de chamada e a ABI. Isso é essencial para garantir que as funções possam cooperar corretamente dentro do programa compilado.
+
+d) Terceiras linhas em foo e bar:
+   80491a5:       8b 45 08          mov    0x8(%ebp),%eax ; foo
+   80491c5:       8b 45 08          mov    0x8(%ebp),%eax ; bar
+
+Em foo e bar essa instrução move o valor localizado em 0x8(%ebp) para o registrador %eax. Em ambos os casos, 0x8(%ebp) refere-se ao primeiro parâmetro da função (n em foo e m em bar).
+
+A terceira linha em foo e bar garante que os parâmetros sejam acessados corretamente e estejam disponíveis para uso dentro das funções. Em comparação, a terceira linha em main lida com entrada de dados do usuário, desempenhando um papel diferente no fluxo de execução do programa.
+
