@@ -23,7 +23,7 @@ int main (void)
   /* Read user's credentials. */
 
   printf ("Enter password: ");
-  scanf ("%s", user_key);
+  scanf("%9s", user_key);
 
   /* Verify credentials. */
 

@@ -1,3 +1,26 @@
 #    SPDX-FileCopyrightText: 2024 hugoferreirj <huugo.vieira49@gmail.com>
 #   
 #    SPDX-License-Identifier: GPL-3.0-or-later
+
+Respostas
+P1:
+O Makefile contém o contém: 'gcc -m32 $< -o $@'. Quando executamos o make p1, o Makefile verifica se p1.c e todos os arquivos do qual ele depende estão atualizados (nesse caso p1.c depende apenas de p1.c). Se necessário, ele executa o comando 'gcc -m32 p1.c -o p1' para compilar p1.c e gerar o executável p1.
+
+Ao rodar o comando o primeiro retorno foi:
+gcc -m32 p1.c -o p1
+
+Depois disso todos os retornos foi sempre:
+make: 'p1' is up to date.
+
+P2: 
+Depois de rodar o 'make p2.c', rodamos o './p2' e colocando a senha 'foo' recebemos a resposta 'Access granted.'. Ao rodar o executável novamente e digitar 'youshallnotpass' novamente recebemos a resposta 'Access granted.'. Isso ocorreu pois o programa não limitava o tamanho da entrada do usuário ao ler a senha com scanf("%s", user_key). Isso permitia que um usuário inserisse uma string maior do que o tamanho esperado 
+(user_key é um array de tamanho 10), potencialmente causando um estouro de buffer overflow. Isso permitia corromper dados na pilha ou permitir a execução de código malicioso.
+
+Para resolver essa vulnerabilidade podemos limitar o tamanho da entrada usando scanf("%9s", user_key) em vez de scanf("%s", user_key) para garantir que user_key receba no máximo 9 caracteres (mais um para o caractere nulo terminador). Estamos entregando o arquivo com essa alteração.
+
+Quando recompilamos o programa com a opção -fstack-protector, o programa retorna 'Access denied'. A proteção de stack com -fstack-protector pode detectar potenciais estouros de buffer durante a execução da função scanf. Isso pode ocorrer antes que a função scanf termine de copiar a entrada do usuário para user_key, o que pode explicar não vermos o retorno 'Stack Smashing Detected'
+
+P3: 
+a) foo chama bar na linha 'a = bar(n + 1);'. A passagem de parâmetros é feita garantindo que o valor de n + 1  esteja acessível para bar() conforme esperado pela convenção de chamada definida para essa arquitetura específica. A convenção de chamada determina como os parâmetros são transmitidos entre as funções (por registradores ou pela pilha) e como os valores de retorno são gerenciados. A ABI vai além, especificando detalhes como o layout da pilha, registros que podem ser modificados e preservados, e outras regras de interação entre funções. 
+
+b) 
