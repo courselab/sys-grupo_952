@@ -47,5 +47,10 @@ d) Terceiras linhas em foo e bar:
 
 Em foo e bar essa instrução move o valor localizado em 0x8(%ebp) para o registrador %eax. Em ambos os casos, 0x8(%ebp) refere-se ao primeiro parâmetro da função (n em foo e m em bar).
 
+O objetivo desta instrução é inicializar ou manipular os parâmetros passados para as funções foo e bar. Ela assegura que os valores dos parâmetros sejam carregados nos registradores apropriados (%eax neste caso) para serem utilizados no restante da função.
+
 A terceira linha em foo e bar garante que os parâmetros sejam acessados corretamente e estejam disponíveis para uso dentro das funções. Em comparação, a terceira linha em main lida com entrada de dados do usuário, desempenhando um papel diferente no fluxo de execução do programa.
 
+A ABI x86 especifica que os parâmetros das funções são acessados através dos endereços base dos ponteiros de pilha (ebp). 0x8(%ebp) é usado para acessar o primeiro parâmetro passado para a função.
+
+e) 
