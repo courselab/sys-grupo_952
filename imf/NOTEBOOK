@@ -1,3 +1,21 @@
 #    SPDX-FileCopyrightText: 2024 hugoferreirj <huugo.vieira49@gmail.com>
+#    SPDX-FileCopyrightText: 2024 hugoferreirj <eduardo.cmazevedo@gmail.com>
 #   
 #    SPDX-License-Identifier: GPL-3.0-or-later
+
+Para 
+Primeiro, eu naveguei até o diretório onde estava localizado o arquivo libauth.so que precisava modificar. 
+Fiz uma cópia desse arquivo para outro diretório para realizar as alterações necessárias.
+
+Em seguida, abri o arquivo libauth.so com um editor (IDA) e modifiquei-o para sempre retornar que o usuário 
+foi autenticado, conforme eu estava investigando.
+
+Para configurar o ambiente de execução, defini a variável de ambiente LD_PRELOAD para apontar para o caminho 
+completo do libauth.so modificado. Por exemplo, exportei a variável da seguinte maneira:
+
+EXPORT LD_PRELOAD=/{diretorio}/libauth.so
+
+Durante a execução, o programa decode verificou se houve alterações no libauth.so que estava sendo carregado 
+via LD_PRELOAD.
+
+É importante lembrar que a chave de decriptação para o decode era "goodluck", que encontrei no IDA.

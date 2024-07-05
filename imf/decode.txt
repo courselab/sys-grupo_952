@@ -235,7 +235,6 @@ Disassembly of section .text:
 08049289 <__x86.get_pc_thunk.dx>:
  8049289:	8b 14 24             	mov    (%esp),%edx
  804928c:	c3                   	ret    
-
 0804928d <main>:
  804928d:	8d 4c 24 04          	lea    0x4(%esp),%ecx
  8049291:	83 e4 f0             	and    $0xfffffff0,%esp
