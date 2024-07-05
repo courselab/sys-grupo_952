@@ -21,6 +21,146 @@ Para resolver essa vulnerabilidade podemos limitar o tamanho da entrada usando s
 Quando recompilamos o programa com a opção -fstack-protector, o programa retorna 'Access denied'. A proteção de stack com -fstack-protector pode detectar potenciais estouros de buffer durante a execução da função scanf. Isso pode ocorrer antes que a função scanf termine de copiar a entrada do usuário para user_key, o que pode explicar não vermos o retorno 'Stack Smashing Detected'
 
 P3: 
-a) foo chama bar na linha 'a = bar(n + 1);'. A passagem de parâmetros é feita garantindo que o valor de n + 1  esteja acessível para bar() conforme esperado pela convenção de chamada definida para essa arquitetura específica. A convenção de chamada determina como os parâmetros são transmitidos entre as funções (por registradores ou pela pilha) e como os valores de retorno são gerenciados. A ABI vai além, especificando detalhes como o layout da pilha, registros que podem ser modificados e preservados, e outras regras de interação entre funções. 
+a) foo chama bar na linha 'a = bar(n + 1);'. 
+A passagem de parâmetros é feita garantindo que o valor de n + 1 esteja acessível para bar() conforme esperado pela convenção de chamada
+definida para essa arquitetura específica. A convenção de chamada determina como os parâmetros são transmitidos entre as funções 
+(por registradores ou pela pilha) e como os valores de retorno são gerenciados. 
+A ABI vai além, especificando detalhes como o layout da pilha, registros que podem ser modificados e preservados, e outras regras de 
+interação entre funções. 
 
-b) 
+b) A função bar retorna seu resultado para foo armazenando-o em um registrador específico (%eax neste caso), que é então acessado por foo após o retorno de bar. Isso demonstra como as convenções de chamada e a ABI afetam a comunicação entre funções em um programa compilado.
+
+c) Primeiras duas instruçõs de foo:
+80491a0:       89 e5             mov    %esp,%ebp
+80491a2:       83 ec 18          sub    $0x18,%esp
+
+Esta instrução reserva espaço na pilha (esp) para variáveis locais de foo. O compilador aloca 24 bytes (0x18 em hexadecimal) para variáveis locais e possíveis parâmetros. Isso é crucial para garantir que foo tenha espaço suficiente para suas operações locais sem corromper outros dados na pilha.
+
+Segunda para úlima instrução de foo:
+80491b7:       89 45 f4          mov    %eax,-0xc(%ebp)
+80491ba:       8b 45 f4          mov    -0xc(%ebp),%eax
+
+Esta instrução move o valor armazenado em -0xc(%ebp) para o registrador %eax. -0xc(%ebp) armazena o valor retornado por bar.
+
+A reserva de espaço na pilha e a movimentação de valores entre registradores são parte das convenções de chamada e ABI que discutimos no item (a).
+
+As instruções mencionadas em foo têm o propósito de gerenciar de forma eficiente o espaço de memória local na pilha e facilitar a passagem de valores entre foo e bar de acordo com as convenções de chamada e a ABI. Isso é essencial para garantir que as funções possam cooperar corretamente dentro do programa compilado.
+
+d) Terceiras linhas em foo e bar:
+   80491a5:       8b 45 08          mov    0x8(%ebp),%eax ; foo
+   80491c5:       8b 45 08          mov    0x8(%ebp),%eax ; bar
+
+Em foo e bar essa instrução move o valor localizado em 0x8(%ebp) para o registrador %eax. Em ambos os casos, 0x8(%ebp) refere-se ao primeiro parâmetro da função (n em foo e m em bar).
+
+O objetivo desta instrução é inicializar ou manipular os parâmetros passados para as funções foo e bar. Ela assegura que os valores dos parâmetros sejam carregados nos registradores apropriados (%eax neste caso) para serem utilizados no restante da função.
+
+A terceira linha em foo e bar garante que os parâmetros sejam acessados corretamente e estejam disponíveis para uso dentro das funções. Em comparação, a terceira linha em main lida com entrada de dados do usuário, desempenhando um papel diferente no fluxo de execução do programa.
+
+A ABI x86 especifica que os parâmetros das funções são acessados através dos endereços base dos ponteiros de pilha (ebp). 0x8(%ebp) é usado para acessar o primeiro parâmetro passado para a função.
+
+e) O compilador ajustou a forma como o valor de retorno é tratado ao usar movsbl para converter o valor de char para int.
+As declarações antes de main permitem ao compilador conhecer os tipos de retorno e parâmetros corretos, evitando erros e gerando código de chamada correto.
+Sem essas declarações, o compilador poderia assumir tipos incorretos, levando a comportamento indefinido ou erros.
+
+P4:
+a) Ao executar 'make p4-v1' obtivemos a saída:
+gcc -m32 -c p4.c -o p4.o
+gcc -m32 -c p4b.c -o p4b.o
+gcc -m32 p4.o p4a.c p4b.o -o p4-v1
+
+Ao executar ./p4-v1 obtivemos:
+Foo
+
+Ao executar 'make p4-v2' obtivemos a saída:
+gcc -m32 -c p4a.c -o p4a.o
+ar rcs libp4.a p4a.o p4b.o
+gcc -m32 p4.o -L. -Wl,-Bstatic -lp4 -Wl,-Bdynamic -o p4-v2
+
+Ao executar ./p4-v2 obtivemos:
+Foo
+
+Ao executar 'make p4-v3' obtivemos a saída:
+gcc -m32 --shared p4a.o p4b.o -o libp4.so
+gcc -m32 p4.o -L. -lp4 -o p4-v3
+
+Ao executar ./p4-v3 obtivemos:
+./p4-v3: error while loading shared libraries: libp4.so: cannot open shared object file: No such file or directory
+
+Nas duas primeiras versões o programa funcionou corretamente. Na terceira ele não conseguiu encontrar a biblioteca.
+Com base nisso podemos dizer que os diferentes métodos de vinculação (linking) afetam a execução do programa p4, 
+dependendo de se usamos objetos diretamente, bibliotecas estáticas ou bibliotecas compartilhadas.
+
+b) Para ver os tamanhos utilizamos o comando ls -lh
+Tamanho p4-v1: 15K
+Tamanho p4-v2: 15K
+Tamanho p4-v3: 15K
+
+Não há diferença. Os 3 programas tem o mesmo tamanho.
+
+c) 
+nm p4-v1:
+000011c3 T foo
+000011ee T bar
+
+Ambas as funções foo e bar são listadas como símbolos definidos (T). 
+Isso ocorre porque todas as funções são incluídas diretamente no executável durante a linkagem, pois todas as dependências são resolvidas estaticamente.
+
+nm p4-v2:
+000011c3 T foo
+bar não aparece aqui
+
+Apenas a função foo é listada como um símbolo definido (T). 
+bar não aparece porque não é chamada diretamente por main e não foi incluída na linkagem através da biblioteca estática libp4.a.
+
+nm p4-v3:
+         U foo
+bar não aparece aqui
+
+A função foo é listada como um símbolo não definido (U), pois é resolvida em tempo de execução pela biblioteca dinâmica libp4.so. 
+bar não é listada porque não é chamada diretamente por main e não é necessária durante a linkagem.
+
+d) Em p4-v1 e p4-v2, apenas libc.so.6 é necessária.
+Em p4-v3, além de libc.so.6, também é necessária libp4.so.
+
+p4-v3 requer libp4.so além de libc.so.6, o que indica uma dependência adicional no programa em relação a v1 e v2. 
+O kernel carrega essas bibliotecas dinamicamente durante a execução do programa, utilizando as informações fornecidas no campo NEEDED para garantir que todos os símbolos necessários estejam disponíveis em memória.
+
+e) 
+   a) Bibliotecas estáticas:
+   Prós:
+      Não há dependência externa, pois todas as bibliotecas necessárias são incorporadas diretamente no executável, e não há necessidade de garantir que versões específicas das bibliotecas estejam disponíveis no host de destino.
+   Contras:
+      Pode aumentar o tamanho do executável e qualquer mudança no código da biblioteca requer uma recompilação completa do executável.
+
+      Bibliotecas dinâmicas:
+   Prós:
+      O tamanho do executável é menor por não incorporar diretamente as bibliotecas e as atualizações nas bibliotecas podem ser feitas sem necessidade de recompilar todos os executáveis dependentes.
+   Contras:
+      O host de destino deve ter as versões corretas das bibliotecas instaladas e pode ser necessário gerenciar dependências e garantir que as bibliotecas corretas estejam disponíveis.
+
+   b) Bibliotecas estáticas:
+   Prós:
+      Garante que o executável sempre use a versão específica da biblioteca com a qual foi compilado.
+   Contras:
+      Requer recompilação de todos os executáveis que dependem da biblioteca para incorporar a versão atualizada.
+
+      Bibliotecas dinâmicas:
+   Prós:
+      As atualizações na biblioteca podem ser distribuídas sem afetar os executáveis que a utilizam diretamente.
+   Contras:
+      A nova versão da biblioteca pode não ser retrocompatível, o que pode quebrar a funcionalidade de executáveis dependentes.
+
+   c) Bibliotecas estáticas:
+   Prós:
+      Geralmente oferece melhor desempenho, pois elimina a sobrecarga de resolução de símbolos durante a execução.
+   Contras:
+      Pode resultar em múltiplas cópias da biblioteca em memória, uma para cada executável que a utiliza.
+
+      Bibliotecas dinâmicas:
+   Prós:
+      Compartilha uma única cópia da biblioteca em memória entre todos os programas que a utilizam.
+   Contras:
+      Problemas podem surgir se versões incompatíveis da biblioteca são necessárias por diferentes programas.
+
+
+
