@@ -4,18 +4,42 @@
 #    SPDX-License-Identifier: GPL-3.0-or-later
 
 Para 
-Primeiro, eu naveguei até o diretório onde estava localizado o arquivo libauth.so que precisava modificar. 
+Primeiro, eu naveguei até o diretório onde estava localizado o arquivo libauth.so que precisava modificar.
+
+~~~> Hm... este exercício não usa alguma biblioteca chamada 'libauth.so'.
+     Os arquivos do exercício são: decode, libcry.so e secret.cry.
+
 Fiz uma cópia desse arquivo para outro diretório para realizar as alterações necessárias.
+
+~~~> Lembre-se: o checksum da lib não pode ser modificado....
 
 Em seguida, abri o arquivo libauth.so com um editor (IDA) e modifiquei-o para sempre retornar que o usuário 
 foi autenticado, conforme eu estava investigando.
 
+~~~> Novamente, não temos libauth.so.
+
 Para configurar o ambiente de execução, defini a variável de ambiente LD_PRELOAD para apontar para o caminho 
 completo do libauth.so modificado. Por exemplo, exportei a variável da seguinte maneira:
+
+~~~> Onde está esta lib?
 
 EXPORT LD_PRELOAD=/{diretorio}/libauth.so
 
 Durante a execução, o programa decode verificou se houve alterações no libauth.so que estava sendo carregado 
 via LD_PRELOAD.
 
+~~~> E o que aconteceu?
+
 É importante lembrar que a chave de decriptação para o decode era "goodluck", que encontrei no IDA.
+
+~~~> Mas como burlou as credenciais??
+
+~~~> No seu diretório há alguns arquivos que não pertencem ao execício.
+     Aparentemente você não realizou a etapa 'make export'.
+
+     Há um arquivo libauth.so.i64, mas ela não pode ser carregada em conjunto com os
+     programs do exercício, que são compilados para 32-bit
+
+     Não consigo abrir o arquivo secret.cry utilizando seu código
+
+~~~>> 0.0

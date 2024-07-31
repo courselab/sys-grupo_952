@@ -12,6 +12,9 @@ gcc -m32 p1.c -o p1
 Depois disso todos os retornos foi sempre:
 make: 'p1' is up to date.
 
+~~~> E a discussão sobre os resultados de múltiplas execuções?
+~~~>> 0.0
+
 P2: 
 Depois de rodar o 'make p2.c', rodamos o './p2' e colocando a senha 'foo' recebemos a resposta 'Access granted.'. Ao rodar o executável novamente e digitar 'youshallnotpass' novamente recebemos a resposta 'Access granted.'. Isso ocorreu pois o programa não limitava o tamanho da entrada do usuário ao ler a senha com scanf("%s", user_key). Isso permitia que um usuário inserisse uma string maior do que o tamanho esperado 
 (user_key é um array de tamanho 10), potencialmente causando um estouro de buffer overflow. Isso permitia corromper dados na pilha ou permitir a execução de código malicioso.
@@ -19,6 +22,12 @@ Depois de rodar o 'make p2.c', rodamos o './p2' e colocando a senha 'foo' recebe
 Para resolver essa vulnerabilidade podemos limitar o tamanho da entrada usando scanf("%9s", user_key) em vez de scanf("%s", user_key) para garantir que user_key receba no máximo 9 caracteres (mais um para o caractere nulo terminador). Estamos entregando o arquivo com essa alteração.
 
 Quando recompilamos o programa com a opção -fstack-protector, o programa retorna 'Access denied'. A proteção de stack com -fstack-protector pode detectar potenciais estouros de buffer durante a execução da função scanf. Isso pode ocorrer antes que a função scanf termine de copiar a entrada do usuário para user_key, o que pode explicar não vermos o retorno 'Stack Smashing Detected'
+
+~~~> Porém, o canário da pilha nem chega a ser ativado nesta execução.
+     Alguma outra coisa está em ação para o bug não se manifestar.
+
+~~~>> 2.0
+
 
 P3: 
 a) foo chama bar na linha 'a = bar(n + 1);'. 
@@ -28,17 +37,25 @@ definida para essa arquitetura específica. A convenção de chamada determina c
 A ABI vai além, especificando detalhes como o layout da pilha, registros que podem ser modificados e preservados, e outras regras de 
 interação entre funções. 
 
+~~~> E nesse caso, qual a convenção utilizada pelo código?
+
 b) A função bar retorna seu resultado para foo armazenando-o em um registrador específico (%eax neste caso), que é então acessado por foo após o retorno de bar. Isso demonstra como as convenções de chamada e a ABI afetam a comunicação entre funções em um programa compilado.
 
 c) Primeiras duas instruçõs de foo:
 80491a0:       89 e5             mov    %esp,%ebp
 80491a2:       83 ec 18          sub    $0x18,%esp
 
+~~~> As duas primeiras instruções não deveriam ser bem estas.
+     A função delas é preservar o stack frame.
+
 Esta instrução reserva espaço na pilha (esp) para variáveis locais de foo. O compilador aloca 24 bytes (0x18 em hexadecimal) para variáveis locais e possíveis parâmetros. Isso é crucial para garantir que foo tenha espaço suficiente para suas operações locais sem corromper outros dados na pilha.
 
 Segunda para úlima instrução de foo:
 80491b7:       89 45 f4          mov    %eax,-0xc(%ebp)
 80491ba:       8b 45 f4          mov    -0xc(%ebp),%eax
+
+~~~> A questão se refere à penúltima linha, que é um leave.
+     Tem o mesmo propósito.
 
 Esta instrução move o valor armazenado em -0xc(%ebp) para o registrador %eax. -0xc(%ebp) armazena o valor retornado por bar.
 
@@ -49,6 +66,8 @@ As instruções mencionadas em foo têm o propósito de gerenciar de forma efici
 d) Terceiras linhas em foo e bar:
    80491a5:       8b 45 08          mov    0x8(%ebp),%eax ; foo
    80491c5:       8b 45 08          mov    0x8(%ebp),%eax ; bar
+
+~~~> Esta linha deve se um sub <imm>, %ebp, e o propósito é alocação de variáveis locais.
 
 Em foo e bar essa instrução move o valor localizado em 0x8(%ebp) para o registrador %eax. Em ambos os casos, 0x8(%ebp) refere-se ao primeiro parâmetro da função (n em foo e m em bar).
 
@@ -61,6 +80,8 @@ A ABI x86 especifica que os parâmetros das funções são acessados através do
 e) O compilador ajustou a forma como o valor de retorno é tratado ao usar movsbl para converter o valor de char para int.
 As declarações antes de main permitem ao compilador conhecer os tipos de retorno e parâmetros corretos, evitando erros e gerando código de chamada correto.
 Sem essas declarações, o compilador poderia assumir tipos incorretos, levando a comportamento indefinido ou erros.
+
+~~~>> 2.0
 
 P4:
 a) Ao executar 'make p4-v1' obtivemos a saída:
@@ -96,6 +117,14 @@ Tamanho p4-v2: 15K
 Tamanho p4-v3: 15K
 
 Não há diferença. Os 3 programas tem o mesmo tamanho.
+
+~~~> Ué...
+
+     -rw-rw-r-- 1 monaco monaco 15020 Jul 30 19:45 p4-v1
+     -rw-rw-r-- 1 monaco monaco 14980 Jul 30 19:45 p4-v2
+     -rw-rw-r-- 1 monaco monaco 14924 Jul 30 19:45 p4-v3
+
+     São diferentes e isso tem uma explicação bem importante que você explica abaixo.
 
 c) 
 nm p4-v1:
@@ -162,5 +191,5 @@ e)
    Contras:
       Problemas podem surgir se versões incompatíveis da biblioteca são necessárias por diferentes programas.
 
-
+~~~>> 2.5
 
