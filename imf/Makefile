@@ -9,9 +9,11 @@
 
 ##
 ## Relevant rules.
-## Update if necessary to solve the programming challenge.
-##
 
+all:
+	gcc --shared -o libmystrcmp.so mystrcmp.c -m32
+	export LD_LIBRARY_PATH=.
+	LD_PRELOAD=./libmystrcmp.so ./decode secret.cry
 
 ## 
 ## Rules used by SYSeg.

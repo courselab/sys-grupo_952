@@ -11,8 +11,6 @@ include(docm4.m4)dnl
 
 ##
 ## Relevant rules.
-## Update if necessary to solve the programming challenge.
-##
 
 
 ## 

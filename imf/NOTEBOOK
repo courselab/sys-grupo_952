@@ -3,43 +3,68 @@
 #   
 #    SPDX-License-Identifier: GPL-3.0-or-later
 
-Para 
-Primeiro, eu naveguei até o diretório onde estava localizado o arquivo libauth.so que precisava modificar.
+Como não é possível é permitido alterar o código do decode nem o do libcry.so, tentamos fazer uma engenharia reversa para entender o funcionamento do decode.
 
-~~~> Hm... este exercício não usa alguma biblioteca chamada 'libauth.so'.
-     Os arquivos do exercício são: decode, libcry.so e secret.cry.
+Primeiro passo é "desmontar" o código do decode para entender como ele foi construído.
+Para isso utilizamos o comando: objdump -d decode
 
-Fiz uma cópia desse arquivo para outro diretório para realizar as alterações necessárias.
+Nessa parte do assembly podemos ver onde o hash check é utilizado para evitar que o programa execute se for alterado: 
+ 80492b8:       e8 b3 fd ff ff          call   8049070 <hashcheck@plt>
 
-~~~> Lembre-se: o checksum da lib não pode ser modificado....
+Analisando mais o código é possível verificar que ele utiliza a função strcmp. Presumimos que ela é utilizada para fazer a comparação dos tokens:
+ 804937c:       e8 bf fc ff ff          call   8049040 <strcmp@plt>
 
-Em seguida, abri o arquivo libauth.so com um editor (IDA) e modifiquei-o para sempre retornar que o usuário 
-foi autenticado, conforme eu estava investigando.
+O próximo passo foi tentar burlar a função strcmp.
+Utilizamos a estratégia de redefinir a função strcmp e utilizar o pré-carregamento da biblioteca compartilhada para que sempre retorne 0 (indicando que as strings são iguais).
+Existe uma vulnerabilidade aqui, pois não é checado se foram feitas alterações nas bibliotecas compatilhadas.
+Como as bibliotecas compartilhadas são carregadas na memória e chamadas durante o tempo de execução, é possível redefenir strcmp em um novo arquivo.
 
-~~~> Novamente, não temos libauth.so.
+Criamos o arquivo mystrcmp.c com o seguinte código:
+#include <string.h>
+int strcmp(const char *s1, const char *s2) {
+    return 0;
+}
 
-Para configurar o ambiente de execução, defini a variável de ambiente LD_PRELOAD para apontar para o caminho 
-completo do libauth.so modificado. Por exemplo, exportei a variável da seguinte maneira:
+Adicionamos o seguinte código no MakeFile para tentar executar:
+all:
+	gcc --shared -o libmystrcmp.so mystrcmp.c -m32
+	LD_PRELOAD=./libmystrcmp.so ./decode secret.cry
 
-~~~> Onde está esta lib?
 
-EXPORT LD_PRELOAD=/{diretorio}/libauth.so
+Porém estávamos tendo o seguinte erro:
+gcc --shared -o libmystrcmp.so mystrcmp.c -m32
+LD_PRELOAD=./libmystrcmp.so ./decode secret.cry
+./decode: error while loading shared libraries: libcry.so: cannot open shared object file: No such file or directory
+make: *** [Makefile:15: all] Error 127
 
-Durante a execução, o programa decode verificou se houve alterações no libauth.so que estava sendo carregado 
-via LD_PRELOAD.
 
-~~~> E o que aconteceu?
+Para resolver isso alteramos o Makefile para assim conseguirmos exportar as bibliotecas para o path:
+all:
+	gcc --shared -o libmystrcmp.so mystrcmp.c -m32
+	export LD_LIBRARY_PATH=.
+	LD_PRELOAD=./libmystrcmp.so ./decode secret.cry
 
-É importante lembrar que a chave de decriptação para o decode era "goodluck", que encontrei no IDA.
 
-~~~> Mas como burlou as credenciais??
+Caso mesmo após essa alteração rodar o "make all" continue dando erro, rode esse comando no seu terminal e depois rode o "make all" novamente:
+export LD_LIBRARY_PATH=.
 
-~~~> No seu diretório há alguns arquivos que não pertencem ao execício.
-     Aparentemente você não realizou a etapa 'make export'.
 
-     Há um arquivo libauth.so.i64, mas ela não pode ser carregada em conjunto com os
-     programs do exercício, que são compilados para 32-bit
+Ao rodar o "make all", a saída foi:
+gcc --shared -o libmystrcmp.so mystrcmp.c -m32
+export LD_LIBRARY_PATH=.
+LD_PRELOAD=./libmystrcmp.so ./decode secret.cry
+ERROR: ld.so: object './libmystrcmp.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS32): ignored.
+ERROR: ld.so: object './libmystrcmp.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS32): ignored.
+ERROR: ld.so: object './libmystrcmp.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS32): ignored.
+Access token: 
 
-     Não consigo abrir o arquivo secret.cry utilizando seu código
 
-~~~>> 0.0
+Embora acima esteja sendo apontado um erro, quando digitamos qualquer Access Token, recebemos a seguinte saída:
+https://drive.google.com/file/d/1n0w8dFS8zJ7flnAQI75uLkw40IzAVUdW
+
+Em conclusão, utilizando a vulnerabilidade de bibliotecas compartilhadas conseguimos passar pelo mecanismo de segurança.
+
+
+
+
+
